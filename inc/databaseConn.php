@@ -11,26 +11,47 @@
 // Bring in the config data
 require_once dirname(__FILE__) . "/config.php";
 
-// Make a connection to the database
-global $DATABASE_SERVER, $DATABASE_USER, $DATABASE_PASS, $DATABASE_DB;
-$dbConn = mysql_connect($DATABASE_SERVER, $DATABASE_USER, $DATABASE_PASS);
-mysql_select_db($DATABASE_DB, $dbConn);
+function dbConnection()
+{
+    // Make a connection to the database
+    global $DATABASE_SERVER, $DATABASE_USER, $DATABASE_PASS, $DATABASE_DB;
+    try
+    {
+        $dbConn = new PDO('mysql:host=' . $DATABASE_SERVER . ';dbname= ' . $DATABASE_DB, $DATABASE_PASS, $DATABASE_PASS);
+        $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        $dbConn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-// Error check
-if(!$dbConn) {
-	die("Could not connect to database: " . mysql_error());
+        return $dbConn;
+    }
+    catch (PDOException $e)
+    {
+        // Set dbConn to null just to explicitly state we are canceling the connection
+        $dbConn = NULL;
+        die("Error!: " . $e->getMessage() . "<br/>");
+    }
 }
+
+function closeDB($pdo)
+{
+    $pdo = null;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
-
 /**
  * Retrieves the meeting information for a section
- * @param	$sectionData	array	Information about a section MUST HAVE:
- *									title, instructor, curenroll, maxenroll,
- *									department, course, section, section id,
- *									type.
- * @return	array	A course array with all the information about the course
+ *
+ * @param $sectionData array
+ *                          Information about a section MUST HAVE:
+ *                          title, instructor, curenroll, maxenroll,
+ *                          department, course, section, section id,
+ *                          type.
+ *
+ * @throws Exception
+ * @return array
+ *              A course array with all the information about the course
  */
 function getMeetingInfo($sectionData) {
 	// Store the course information
@@ -51,14 +72,14 @@ function getMeetingInfo($sectionData) {
     if($course['online']) { return $course; }
 
     // Now we query for the times of the section
+    $pdo = dbConnection();
     $query = "SELECT b.code, b.number, b.off_campus, t.room, t.day, t.start, t.end ";
     $query .= "FROM times AS t JOIN buildings AS b ON b.number=t.building ";
-    $query .= "WHERE section = {$sectionData['id']}";
-    $result = mysql_query($query);
-    if(!$result) {
-        throw new Exception("mysql:" . mysql_error());
-    }
-    while($row = mysql_fetch_assoc($result)) {
+    $query .= "WHERE section = :section";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":section", $sectionData['id']);
+    $stmt->execute();
+    while ($row = $stmt->fetch()) {
         $course["times"][] = array(
             "bldg"       => array("code"=>$row['code'], "number"=>$row['number']),
             "room"       => $row['room'],
@@ -69,7 +90,9 @@ function getMeetingInfo($sectionData) {
             );
     }
 
-	return $course;
+    closeDB($pdo);
+
+    return $course;
 }
 
 /**
@@ -83,25 +106,27 @@ function getCourseBySectionId($id) {
         trigger_error("A valid section id was not provided");
     }
 
-	// Build the query to get section info
-	$query = "SELECT s.id,
+    $pdo = dbConnection();
+    $query = "SELECT s.id,
                 (CASE WHEN (s.title != '') THEN s.title ELSE c.title END) AS title,
                 c.id AS courseId,
                 s.instructor, s.curenroll, s.maxenroll, s.type, c.quarter, c.course, s.section, d.number, d.code
                 FROM sections AS s
                   JOIN courses AS c ON s.course = c.id
                   JOIN departments AS d ON d.id = c.department
-                WHERE s.id = '{$id}'";
+                WHERE s.id = :id";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+    $stmt->execute();
+    $row = $stmt->fetch();
 
-	// Actually run the query
-	$result = mysql_query($query);
-	// @TODO: Error handling
-	$row = mysql_fetch_assoc($result);
     if($row['quarter'] > 20130) {
         $row['department'] = $row['code'];
     } else {
         $row['department'] = $row['number'];
     }
+
+    closeDB($pdo);
 
 	return ($row) ? getMeetingInfo($row) : null;
 }
@@ -128,9 +153,9 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
                   FROM sections AS s
                     JOIN courses AS c ON c.id=s.course
                     JOIN departments AS d ON d.id=c.department
-                  WHERE c.quarter = '{$term}'
-                    AND d.code = '{$dept}'
-                    AND c.course = '{$courseNum}' AND s.section = '{$sectNum}'";
+                  WHERE c.quarter = :term
+                    AND d.code = :dept
+                    AND c.course = :courseNum  AND s.section = :sectNum";
     } else {
         $query = "SELECT s.id,
                     (CASE WHEN (s.title != '') THEN s.title ELSE c.title END) AS title,
@@ -138,13 +163,20 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
                   FROM sections AS s
                     JOIN courses AS c ON c.id=s.course
                     JOIN departments AS d ON d.id=c.department
-                  WHERE c.quarter = '{$term}'
-                    AND d.number = '{$dept}'
-                    AND c.course = '{$courseNum}' AND s.section = '{$sectNum}'";
+                  WHERE c.quarter = :term
+                    AND d.number = :dept
+                    AND c.course = :courseNum AND s.section = :sectNum";
     }
 
-	// Execute the query and error check
-	$result = mysql_query($query);
+    $pdo = dbConnection();
+
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":term", $term);
+    $stmt->bindParam(":dept", $dept);
+    $stmt->bindParam(":courseNum", $courseNum);
+    $stmt->execute();
+    $result = $stmt->fetch();
+
 	if(!$result) {
 		throw new Exception("mysql:" . mysql_error());
 	} elseif(mysql_num_rows($result) > 1) {
@@ -152,6 +184,8 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
 	} elseif(mysql_num_rows($result) == 0) {
 		throw new Exception("objnotfound:{$term}-{$dept}-{$courseNum}-{$sectNum}");
 	}
+
+    closeDB($pdo);
 
 	return getMeetingInfo(mysql_fetch_assoc($result));
 }
@@ -162,18 +196,20 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
  * @return the array of terms
  */
 function getTerms() {
-	
+
+    $pdo = dbConnection();
 	$terms = array();
 
 	// Query the database for the quarters
 	$query = "SELECT quarter FROM quarters ORDER BY quarter DESC";
-	$result = mysql_query($query);
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
 
 	// Output the quarters as options
 	$curYear = 0;
 	$termGroupName = "";
 	
-	while($row = mysql_fetch_assoc($result)) {
+	while($row = $stmt->fetch()) {
 		$term = $row['quarter'];
 
 		// Parse it into a year-quarter thingy
