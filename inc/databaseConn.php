@@ -247,6 +247,8 @@ function getTerms() {
 			"group" => $termGroupName
 		);
 	}
+
+    closeDB($pdo);
+
 	return $terms;
 }
-
