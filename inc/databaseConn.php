@@ -11,6 +11,11 @@
 // Bring in the config data
 require_once dirname(__FILE__) . "/config.php";
 
+/**
+ * Establishes a PDO database connection if errors happen output the errors.
+ *
+ * @return PDO $dbConn;
+ */
 function dbConnection()
 {
     // Make a connection to the database
@@ -27,14 +32,21 @@ function dbConnection()
     catch (PDOException $e)
     {
         // Set dbConn to null just to explicitly state we are canceling the connection
-        $dbConn = NULL;
+        $dbConn = null;
         die("Error!: " . $e->getMessage() . "<br/>");
     }
 }
 
+/**
+ * By setting $pdo to null it terminates the PDO connection to the database
+ *
+ * @param PDO $pdo
+ *
+ * @return null
+ */
 function closeDB($pdo)
 {
-    $pdo = null;
+    return $pdo = null;
 }
 
 
@@ -90,7 +102,7 @@ function getMeetingInfo($sectionData) {
             );
     }
 
-    closeDB($pdo);
+    $pdo = closeDB($pdo);
 
     return $course;
 }
@@ -126,7 +138,7 @@ function getCourseBySectionId($id) {
         $row['department'] = $row['number'];
     }
 
-    closeDB($pdo);
+    $pdo = closeDB($pdo);
 
 	return ($row) ? getMeetingInfo($row) : null;
 }
@@ -185,7 +197,7 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
 		throw new Exception("objnotfound:{$term}-{$dept}-{$courseNum}-{$sectNum}");
 	}
 
-    closeDB($pdo);
+    $pdo = closeDB($pdo);
 
 	return getMeetingInfo(mysql_fetch_assoc($result));
 }
@@ -248,7 +260,7 @@ function getTerms() {
 		);
 	}
 
-    closeDB($pdo);
+    $pdo = closeDB($pdo);
 
 	return $terms;
 }
