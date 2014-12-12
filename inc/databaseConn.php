@@ -199,7 +199,7 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
 
     $pdo = closeDB($pdo);
 
-	return getMeetingInfo(mysql_fetch_assoc($result));
+	return getMeetingInfo($result);
 }
 
 /**
