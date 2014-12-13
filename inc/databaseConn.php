@@ -103,7 +103,6 @@ function getMeetingInfo($sectionData) {
     }
 
     $pdo = closeDB($pdo);
-
     return $course;
 }
 
@@ -139,8 +138,7 @@ function getCourseBySectionId($id) {
     }
 
     $pdo = closeDB($pdo);
-
-	return ($row) ? getMeetingInfo($row) : null;
+    return ($row) ? getMeetingInfo($row) : null;
 }
 
 /**
@@ -198,12 +196,11 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
 	}
 
     $pdo = closeDB($pdo);
-
-	return getMeetingInfo($result);
+    return getMeetingInfo($result);
 }
 
 /**
- * Does a query for all the terms in the database and parses them like 
+ * Does a query for all the terms in the database and parses them like
  * term:'Spring ####' for display val.
  * @return the array of terms
  */
@@ -220,7 +217,7 @@ function getTerms() {
 	// Output the quarters as options
 	$curYear = 0;
 	$termGroupName = "";
-	
+
 	while($row = $stmt->fetch()) {
 		$term = $row['quarter'];
 
@@ -246,12 +243,12 @@ function getTerms() {
 				default: $termName = "Unknown";
 			}
 		}
-		
+
 		if($curYear != $year) {
 			$curYear = $year;
 			$termGroupName = "{$year} - {$nextYear}";
 		}
-		
+
 		// Now add it to the array
 		$terms[] = array(
 			"value" => (int) $term,
@@ -261,6 +258,5 @@ function getTerms() {
 	}
 
     $pdo = closeDB($pdo);
-
-	return $terms;
+    return $terms;
 }
