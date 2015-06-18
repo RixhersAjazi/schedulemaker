@@ -8,6 +8,7 @@
 // @descrip	Provides mysql database connection for the system.
 ////////////////////////////////////////////////////////////////////////////
 
+
 // Bring in the config data
 require_once dirname(__FILE__) . "/config.php";
 
@@ -44,8 +45,7 @@ function dbConnection()
  *
  * @return null
  */
-function closeDB($pdo)
-{
+function closeDB($pdo) {
     return $pdo = null;
 }
 
@@ -102,7 +102,7 @@ function getMeetingInfo($sectionData) {
             );
     }
 
-    $pdo = closeDB($pdo);
+    closeDB($pdo);
     return $course;
 }
 
@@ -137,7 +137,7 @@ function getCourseBySectionId($id) {
         $row['department'] = $row['number'];
     }
 
-    $pdo = closeDB($pdo);
+    closeDB($pdo);
     return ($row) ? getMeetingInfo($row) : null;
 }
 
@@ -195,7 +195,7 @@ function getCourse($term, $dept, $courseNum, $sectNum) {
 		throw new Exception("objnotfound:{$term}-{$dept}-{$courseNum}-{$sectNum}");
 	}
 
-    $pdo = closeDB($pdo);
+    closeDB($pdo);
     return getMeetingInfo($result);
 }
 
@@ -257,6 +257,6 @@ function getTerms() {
 		);
 	}
 
-    $pdo = closeDB($pdo);
+    closeDB($pdo);
     return $terms;
 }
