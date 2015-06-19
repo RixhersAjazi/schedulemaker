@@ -285,15 +285,14 @@ switch(getAction()) {
             else
                 $stmt->bindParam(":coursenum", $coursenum);
 
-
-            $result = mysql_query($query);
-            if(!$result) {
+            if(!$stmt->execute()) {
                 die(json_encode(array("error" => "mysql", "msg" => "A database error occurred while searching for {$course}")));
             }
-            if(mysql_num_rows($result) == 0) { continue; }
+
+            if($sth->fetch(PDO::FETCH_NUM) == 0) { continue; }
 
             // Fetch all the results and append them to the list
-            while($row = mysql_fetch_assoc($result)) {
+            while($row = $stmt->fetch()) {
                 $courseOptions[] = getCourseBySectionId($row['id']);
             }
         }
