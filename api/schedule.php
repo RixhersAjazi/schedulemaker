@@ -348,25 +348,32 @@ switch($mode) {
 		
 			// Start the storing process with storing the data about the schedule
 			$query = "INSERT INTO schedules (oldid, startday, endday, starttime, endtime, building, quarter)" .
-					" VALUES('', '{$json['startday']}', '{$json['endday']}', '{$json['starttime']}', '{$json['endtime']}', '{$json['building']}', " .
-					" '{$json['term']}')";
+                     "VALUES ('', ':startday', ':endday', ':starttime', ':endtime', ':building', ':term')";
 
+            $pdo = dbConnection();
+            $stmt->prepare($query);
+            $stmt->bindParam(":startday", $json['startday']);
+            $stmt->bindParam(":endday", $json['endday']);
+            $stmt->bindParam(":starttime", $json['starttime']);
+            $stmt->bindParam(":endtime", $json['endtime']);
+            $stmt->bindParam(":building", $json['building']);
+            $stmt->bindParam(":term", $json['term']);
 
-			$result = mysql_query($query);
-			if(!$result) {
-				die(json_encode(array("error" => "mysql", "msg" => "Failed to store the schedule: " . mysql_error($dbConn))));
+			if(!$stmt->execute()) {
+				die(json_encode(array("error" => "mysql", "msg" => "Failed to store the schedule: " . $pdo->errorInfo())));
 			}
 		
 			// Grab the latest id for the schedule
-			$schedId = mysql_insert_id();
+			$schedId = $pdo->lastInsertId();
 		
 			// Optionally process the svg for the schedule
 			$image = false;
 			if(!empty($_POST['svg']) && renderSvg($_POST['svg'], $schedId)) {
-				$query = "UPDATE schedules SET image = ((1)) WHERE id = '{$schedId}'";
-				mysql_query($query);  // We don't particularly care if this fails
+				$query = "UPDATE schedules SET image = ((1)) WHERE id = :schedId";
+                $stmt = $pdo->prepare($query);
+                $stmt->execute(); // We don't particularly care if this fails
 			}
-		
+
 			// Now iterate through the schedule
 			foreach($json['schedule'] as $item) {
 				// Process it into schedulenoncourses if the item is a non-course item
@@ -374,19 +381,30 @@ switch($mode) {
 					// Process each time as a seperate item
 					foreach($item['times'] as $time) {
 						$query = "INSERT INTO schedulenoncourses (title, day, start, end, schedule)" .
-								" VALUES('{$item['title']}', '{$time['day']}', '{$time['start']}', '{$time['end']}', '{$schedId}')";
-						$result = mysql_query($query);
-						if(!$result) {
-							die(json_encode(array("error" => "mysql", "msg" => "Storing non-course item '{$item['title']}' failed: " . mysql_error($dbConn))));
+								" VALUES(':title', ':day', ':start', ':end', ':schedId')";
+
+                        $pdo = dbConnection();
+                        $stmt = $pdo->prepare($query);
+                        $stmt->bindParam(":title", $item['item']);
+                        $stmt->bindParam(":day", $item['day']);
+                        $stmt->bindParam(":start", $item['start']);
+                        $stmt->bindParam(":end", $item['end']);
+                        $stmt->bindParam(":schedId", $schedId);
+						if(!$stmt->execute()) {
+							die(json_encode(array("error" => "mysql", "msg" => "Storing non-course item '{$item['title']}' failed: " . $pdo->errorInfo())));
 						}
 					}
 				} else {
 					// Process each course. It's crazy simple now.
 					$query = "INSERT INTO schedulecourses (schedule, section)" .
-							" VALUES('{$schedId}', '{$item['id']}')";
-					$result = mysql_query($query);
-					if(!$result) {
-						die(json_encode(array("error" => "mysql", "msg" => "Storing a course '{$item['courseNum']}' failed: " . mysql_error($dbConn))));
+							" VALUES(':schedId', ':id')";
+
+                    $stmt = $pdo->prepare($query);
+                    $stmt->bindParam(":schedId", $schedId);
+                    $stmt->bindParam(":id", $item['id']);
+
+					if(!$stmt->execute()) {
+						die(json_encode(array("error" => "mysql", "msg" => "Storing a course '{$item['courseNum']}' failed: " . $pdo->errorInfo())));
 					}
 				}
 			}
