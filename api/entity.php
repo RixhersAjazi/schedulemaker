@@ -199,17 +199,21 @@ switch(getAction()) {
 		          FROM sections AS s
 		            JOIN courses AS c ON s.course = c.id
 		            JOIN departments AS d ON d.id = c.department
-                  WHERE s.course = '{$_POST['course']}'
+                  WHERE s.course = :course
                     AND s.status != 'X'
                   ORDER BY c.course, s.section";
-		$sectionResult = mysql_query($query);
-		if(!$sectionResult) {
-			die(json_encode(array("error" => "mysql", "msg" => mysql_error())));
+
+        $pdo = dbConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":course", $_POST['course']);
+
+		if(!$stmt->execute()) {
+			die(json_encode(array("error" => "mysql", "msg" => $pdo->errorInfo())));
 		}
 		
 		// Collect the sections and their times, modify the section inline
 		$sections = array();
-		while($section = mysql_fetch_assoc($sectionResult)) {
+		while($section = $stmt->fetch()) {
 			$section['times'] = array();
 
 			// Set the course title depending on its section title
@@ -230,14 +234,17 @@ switch(getAction()) {
                 $query = "SELECT day, start, end, b.code, b.number, b.off_campus AS off, room
                           FROM times AS t
                             JOIN buildings AS b ON b.number=t.building
-                          WHERE t.section = '{$section['id']}'
+                          WHERE t.section = :id '{$section['id']}'
                           ORDER BY day, start";
-                $timeResult = mysql_query($query);
-                if(!$timeResult) {
-                    die(json_encode(array("error" => "mysql", "msg" => mysql_error())));
+
+                $stmt = $pdo->prepare($query);
+                $stmt->bindParam(":id", $section['id']);
+
+                if(!$stmt->execute()) {
+                    die(json_encode(array("error" => "mysql", "msg" => $pdo->errorInfo())));
                 }
 
-                while($time = mysql_fetch_assoc($timeResult)) {
+                while($time = $stmt->fetch()) {
                     $timeOutput = array(
                         'start'    => $time['start'],
                         'end'      => $time['end'],
@@ -270,6 +277,7 @@ switch(getAction()) {
 
 		// Spit out the json
 		echo json_encode(array("sections" => $sections));
+        closeDB($pdo);
 		break;
 
     default:
