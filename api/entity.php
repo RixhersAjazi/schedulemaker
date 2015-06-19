@@ -68,7 +68,7 @@ switch(getAction()) {
 		}
 
 		echo json_encode(array("courses" => $courses));
-
+        closeDB($pdo);
 		break;
 
 	case "getDepartments":
@@ -90,27 +90,32 @@ switch(getAction()) {
             // Get the department code and concat the numbers
             $query = "SELECT id, title, code, GROUP_CONCAT(number, ', ') AS number
                       FROM departments AS d
-                      WHERE school = '{$_POST['school']}'
-                        AND (SELECT COUNT(*) FROM courses AS c WHERE c.department=d.id AND quarter='{$_POST['term']}') >= 1
+                      WHERE school = :school
+                        AND (SELECT COUNT(*) FROM courses AS c WHERE c.department=d.id AND quarter= :term ) >= 1
                         AND code IS NOT NULL
                       GROUP BY code
                       ORDER BY code";
         } else {
             $query = "SELECT id, title, number
                   FROM departments AS d
-                  WHERE school = '{$_POST['school']}'
-		            AND (SELECT COUNT(*) FROM courses AS c WHERE c.department=d.id AND quarter='{$_POST['term']}' ) >= 1
+                  WHERE school = :school
+		            AND (SELECT COUNT(*) FROM courses AS c WHERE c.department=d.id AND quarter= :term) >= 1
 		            AND number IS NOT NULL
                   ORDER BY id";
         }
-		$result = mysql_query($query);
-		if(!$result) {
-			die(json_encode(array("error" => "mysql", "msg" => mysql_error())));
+
+        $pdo = dbConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":school", $_POST['school']);
+        $stmt->bindParam(":term", $_POST['term']);
+
+		if(!$stmt->execute()) {
+			die(json_encode(array("error" => "mysql", "msg" => $pdo->errorInfo())));
 		}
 
 		// Collect the departments and turn it into a json
 		$departments = array();
-		while($department = mysql_fetch_assoc($result)) {
+		while($department = $stmt->fetch()) {
             $departments[] = array(
                 "id" => $department['id'],
                 "title" => $department['title'],
@@ -120,7 +125,7 @@ switch(getAction()) {
 		}
 
 		echo json_encode(array("departments" => $departments));
-
+        closeDB($pdo);
 		break;
 
     case "getSchools":
