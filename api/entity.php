@@ -40,19 +40,24 @@ switch(getAction()) {
                   FROM sections AS s
                   JOIN courses AS c ON s.course = c.id
                   JOIN departments AS d ON d.id = c.department
-		          WHERE c.department = '{$_POST['department']}'
-		            AND quarter = '{$_POST['term']}'
+		          WHERE c.department = :department
+		            AND quarter = :term
 		            AND s.status != 'X'
 		          GROUP BY c.id
 		          ORDER BY course";
-		$result = mysql_query($query);
-		if(!$result) {
-			die(json_encode(array("error" => "mysql", "msg" => mysql_error())));
+
+        $pdo = dbConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":department", $_POST['department']);
+        $stmt->bindParam(":term", $_POST['term']);
+
+        if(!$stmt->execute()) {
+			die(json_encode(array("error" => "mysql", "msg" => $pdo->errorInfo())));
 		}
 
 		// Collect the courses and turn it into a json
 		$courses = array();
-		while($course = mysql_fetch_assoc($result)) {
+		while($course = $stmt->fetch()) {
             $courses[] = array(
                 "id" => $course['id'],
                 "course" => $course['course'],
