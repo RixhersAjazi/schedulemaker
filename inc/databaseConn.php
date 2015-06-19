@@ -46,7 +46,7 @@ function dbConnection()
  * @return null
  */
 function closeDB($pdo) {
-    return $pdo = null;
+    $pdo = null;
 }
 
 
