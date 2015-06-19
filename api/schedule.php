@@ -194,11 +194,6 @@ function getScheduleFromOldId($id) {
 	}
 }
 
-function queryOldId($id) {
-	// Grab all the courses that match the id
-	$query = "SELECT c.section FROM schedules AS s, schedulecourses AS c WHERE s.id = c.section AND s.oldid = '{$id}'";
-}
-
 /**
  * Generates a render of schedule's SVG. The PNG render of the image will be
  * stored in /img/schedules/ with a filename equal to the id of the schedule.
