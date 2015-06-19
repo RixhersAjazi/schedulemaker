@@ -178,12 +178,15 @@ function getScheduleFromId($id) {
 }
 
 function getScheduleFromOldId($id) {
-	$query = "SELECT id FROM schedules WHERE oldid = '{$id}'";
-	$result = mysql_query($query);
-	if(!$result || mysql_num_rows($result) != 1) {
+	$query = "SELECT id FROM schedules WHERE oldid = :id";
+    $pdo = dbConnection();
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+    ;
+	if(!$stmt->execute() || $stmt->fetch(PDO::FETCH_NUM) != 1) {
 		return NULL;
 	} else {
-		$newId = mysql_fetch_assoc($result);
+		$newId = $stmt->fetch();
 		$newId = $newId['id'];
 		$schedule = getScheduleFromId($newId);
 		$schedule['id'] = $newId;
