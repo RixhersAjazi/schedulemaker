@@ -415,7 +415,8 @@ switch($mode) {
 			$url = "{$HTTPROOTADDRESS}schedule/{$hexId}";
 		
 			echo json_encode(array("url" => $url, "id" => $hexId));
-		
+
+            closeDB($pdo);
 			break;
 
 	default:
