@@ -18,9 +18,6 @@ require_once "../inc/ajaxError.php";
 // HEADERS /////////////////////////////////////////////////////////////////
 header("Content-type: application/json");
 
-// POST PROCESSING /////////////////////////////////////////////////////////
-$_POST = sanitize($_POST);
-
 // MAIN EXECUTION //////////////////////////////////////////////////////////
 
 // Switch on the action
@@ -234,7 +231,7 @@ switch(getAction()) {
                 $query = "SELECT day, start, end, b.code, b.number, b.off_campus AS off, room
                           FROM times AS t
                             JOIN buildings AS b ON b.number=t.building
-                          WHERE t.section = :id '{$section['id']}'
+                          WHERE t.section = :id
                           ORDER BY day, start";
 
                 $stmt = $pdo->prepare($query);
