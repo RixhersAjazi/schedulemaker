@@ -34,11 +34,16 @@ function generateIcal($schedule) {
 
 	// We need to lookup the information about the quarter
 	$term = mysql_real_escape_string($schedule['term']);
-	$query = "SELECT start, end, breakstart, breakend FROM quarters WHERE quarter='{$term}'";
-	$result = mysql_query($query);
-	$term = mysql_fetch_assoc($result);
+	$query = "SELECT start, end, breakstart, breakend FROM quarters WHERE quarter=:term";
+
+    $pdo = dbConnection();
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":term", $term);
+    $stmt->execute();
+	$term = $stmt->fetch();
 	$termStart = strtotime($term['start']);
 	$termEnd = date("Ymd", strtotime($term['end']));
+    closeDB($pdo);
 
 	// Start generating code
 	$code = "";
