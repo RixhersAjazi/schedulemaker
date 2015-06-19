@@ -167,19 +167,22 @@ switch(getAction()) {
 			$query = "SELECT id, number AS code, title FROM schools WHERE number IS NOT NULL ORDER BY number";
 		}
 		// Query for the schools
-        $result = mysql_query($query);
-        if(!$result) {
+        $pdo = dbConnection();
+        $stmt = $pdo->prepare($query);
+        if(!$stmt->execute()) {
         	die(json_encode(array("error" => "database", "msg" => "The list of schools could not be retrieved at this time.")));
         }
         
         // Build an array of schools
         $schools = array();
-        while($school = mysql_fetch_assoc($result)) {
+        while($school = $stmt->fetch()) {
         	$schools[] = $school;
         }
         
         // Return it to the user
         echo(json_encode($schools));
+
+        closeDB($pdo);
         break;
 
 	case "getSections":
