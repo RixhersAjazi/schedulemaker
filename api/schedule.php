@@ -184,13 +184,15 @@ function getScheduleFromOldId($id) {
     $stmt->bindParam(":id", $id);
     ;
 	if(!$stmt->execute() || $stmt->fetch(PDO::FETCH_NUM) != 1) {
-		return NULL;
+		closeDB($pdo);
+        return NULL;
 	} else {
 		$newId = $stmt->fetch();
 		$newId = $newId['id'];
 		$schedule = getScheduleFromId($newId);
 		$schedule['id'] = $newId;
-		return $schedule;
+        closeDB($pdo);
+        return $schedule;
 	}
 }
 
@@ -331,7 +333,7 @@ switch($mode) {
 			$json = stripslashes($_POST['data']);
 		
 			// Make sure the object was successfully decoded
-			$json = sanitize(json_decode($json, true));
+			$json = json_decode($json, true);
 			if($json == null) {
 				die(json_encode(array("error" => "argument", "msg" => "The schedule could not be decoded", "arg" => "schedule")));
 			}
@@ -343,6 +345,8 @@ switch($mode) {
 			$query = "INSERT INTO schedules (oldid, startday, endday, starttime, endtime, building, quarter)" .
 					" VALUES('', '{$json['startday']}', '{$json['endday']}', '{$json['starttime']}', '{$json['endtime']}', '{$json['building']}', " .
 					" '{$json['term']}')";
+
+
 			$result = mysql_query($query);
 			if(!$result) {
 				die(json_encode(array("error" => "mysql", "msg" => "Failed to store the schedule: " . mysql_error($dbConn))));
