@@ -105,16 +105,20 @@ function generateIcal($schedule) {
 function getScheduleFromId($id) {
 	// Query to see if the id exists, if we can update the last accessed time,
 	// then the id most definitely exists.
-	$query = "UPDATE schedules SET datelastaccessed = NOW() WHERE id={$id}";
-	$result = mysql_query($query);
-	
-	$query = "SELECT startday, endday, starttime, endtime, building, `quarter`, CAST(`image` AS unsigned int) AS `image` FROM schedules WHERE id={$id}";
+	$query = "UPDATE schedules SET datelastaccessed = NOW() WHERE id= :id";
+	$pdo = dbConnection();
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+    $stmt->execute();
 
-	$result = mysql_query($query);
-    if(!$result) {
+	$query = "SELECT startday, endday, starttime, endtime, building, `quarter`, CAST(`image` AS unsigned int) AS `image` FROM schedules WHERE id= :id";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+
+    if(!$stmt->execute()) {
         return NULL;
     }
-	$scheduleInfo = mysql_fetch_assoc($result);
+	$scheduleInfo = $stmt->fetch();
 	if(!$scheduleInfo) {
 		return NULL;
 	}
@@ -132,19 +136,23 @@ function getScheduleFromId($id) {
 	$schedule = array();
 
 	// It exists, so grab all the courses that exist for this schedule
-	$query = "SELECT section FROM schedulecourses WHERE schedule = {$id}";
-	$result = mysql_query($query);
-	while($course = mysql_fetch_assoc($result)) {
+	$query = "SELECT section FROM schedulecourses WHERE schedule = :id";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+    $stmt->execute();
+	while($course = $stmt->fetch()) {
 		$schedule[] = getCourseBySectionId($course['section']);
 	}
 
 	// Grab all the non courses that exist for this schedule
-	$query = "SELECT * FROM schedulenoncourses WHERE schedule = $id";
-	$result = mysql_query($query);
-	if(!$result) {
-		echo mysql_error();
+	$query = "SELECT * FROM schedulenoncourses WHERE schedule = :id";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(":id", $id);
+
+	if(!$stmt->execute()) {
+		echo $pdo->errorInfo();
 	}
-	while($nonCourseInfo = mysql_fetch_assoc($result)) {
+	while($nonCourseInfo = $stmt->fetch()) {
 		$schedule[] = array(
 			"title"     => $nonCourseInfo['title'],
 			"courseNum" => "non",
