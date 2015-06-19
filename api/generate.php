@@ -228,7 +228,7 @@ switch(getAction()) {
                         JOIN departments AS d ON c.department = d.id
                       WHERE
                         s.status != 'X'
-                        AND c.quarter = '{$_POST['term']}'";
+                        AND c.quarter = :term";
 
             // Component 1: Department
             $department = $courseParts[1];
@@ -236,26 +236,30 @@ switch(getAction()) {
                 // We didn't get an entire department. We won't proceed
                 die(json_encode(array("error" => "argument", "msg" => "You must provide at least a complete department")));
             }
-            $query .= " AND (d.code = '{$department}' OR d.number = '{$department}')";
+            $query .= " AND (d.code = :department OR d.number = :department)";
 
             // Component 2: Course number
             $coursenum = $courseParts[2];
+            $courseLike = false;
             if(!$coursenum || (strlen($coursenum) != 3 && strlen($coursenum) != 4)) {
                 // We got a partial course. That's ok.
-                $query .= " AND c.course LIKE '{$coursenum}%'";
+                $query .= " AND c.course LIKE :coursenum";
+                $curseLike = true;
             } else {
                 // The user has specified a 3 or 4 character course number. If its 4 chars then the user had better know
                 // what they're doing.
-                $query .= " AND c.course = '{$coursenum}'";
+                $query .= " AND c.course = :coursenum";
             }
 
             // Component 3: Section number
             $section = $courseParts[3];
+            $sectionLike = false;
             if(!$section || strlen($coursenum) != 4) {
                 // We got a partial section number. That's ok.
-                $query .= " AND s.section LIKE '{$section}%'";
+                $query .= " AND s.section LIKE :section";
+                $sectionLike = true;
             } else {
-                $query .= " AND s.section = '{$section}'";
+                $query .= " AND s.section = :section";
             }
 
             // Ignore full courses option
@@ -265,6 +269,22 @@ switch(getAction()) {
 
             // Close it up and provide order
             $query .= " ORDER BY c.course, s.section";
+
+            $pdo = dbConnection();
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(":term", $_POST['term']);
+            $stmt->bindParam(":department", $department);
+
+            if ($sectionLike)
+                $stmt->bindParam(":section%", $section);
+            else
+                $stmt->bindParam(":section", $section);
+
+            if ($courseLike)
+                $stmt->bindParam(":coursenum%", $coursenum);
+            else
+                $stmt->bindParam(":coursenum", $coursenum);
+
 
             $result = mysql_query($query);
             if(!$result) {
@@ -284,6 +304,7 @@ switch(getAction()) {
 
         // Puke the results back to the user
 		echo json_encode($courseOptions);
+        closeDB($pdo);
 
 		break;
 
