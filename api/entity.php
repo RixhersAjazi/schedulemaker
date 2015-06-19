@@ -132,19 +132,22 @@ switch(getAction()) {
         // REQUEST FOR LIST OF SCHOOLS /////////////////////////////////////
         // Query for the schools
         $query = "SELECT `id`, `number`, `code`, `title` FROM schools";
-        $result = mysql_query($query);
-        if(!$result) {
+        $pdo = dbConnection();
+        $stmt = $pdo->prepare($query);
+
+        if(!$stmt->execute()) {
             die(json_encode(array("error" => "database", "msg" => "The list of schools could not be retrieved at this time.")));
         }
 
         // Build an array of schools
         $schools = array();
-        while($school = mysql_fetch_assoc($result)) {
+        while($school = $stmt->fetch()) {
             $schools[] = $school;
         }
 
         // Return it to the user
         echo(json_encode($schools));
+        closeDB($pdo);
         break;
         
     case "getSchoolsForTerm":
