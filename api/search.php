@@ -33,9 +33,6 @@ require_once "../inc/ajaxError.php";
 // HEADERS /////////////////////////////////////////////////////////////////
 header("Content-type: application/json");
 
-// POST PROCESSING /////////////////////////////////////////////////////////
-$_POST = sanitize($_POST);
-
 // MAIN EXECUTION //////////////////////////////////////////////////////////
 
 // We're providing JSON
@@ -64,7 +61,7 @@ switch(getAction()) {
 		} else {
 			$department = null;
 		}
-		
+
 		if(count($description) > 0) {
 			$keyword_SQL = 'AND (';
 			foreach ($description as $keyword) {
@@ -75,7 +72,7 @@ switch(getAction()) {
 		} else {
 			$keyword_SQL = null;
 		}
-		
+
 		// Validate the numerical arguments we got
 		assertNumeric($term, "term");
 		assertNumeric($school, "school");
@@ -84,7 +81,7 @@ switch(getAction()) {
 		// Times (Search for any if any is selected, search for the specified times, OR don't specify any time data)
 		if(!empty($_POST['timesAny']) && $_POST['timesAny'] == 'any') {
 			$times = null;
-			$timesAny = true;		
+			$timesAny = true;
 		} elseif(empty($_POST['timesAny']) && !empty($_POST['times'])) {
 			$times = (is_array($_POST['times'])) ? $_POST['times'] : array($_POST['times']);
 			$timesAny = false;
@@ -95,7 +92,7 @@ switch(getAction()) {
 		// Days (same process as the time)
 		if(!empty($_POST['daysAny']) && $_POST['daysAny'] == 'any') {
 			$days = null;
-			$daysAny = true;		
+			$daysAny = true;
 		} elseif(empty($_POST['daysAny']) && !empty($_POST['days'])) {
 			$days = (is_array($_POST['days'])) ? $_POST['days'] : array($_POST['days']);
 			$daysAny = false;
@@ -152,7 +149,7 @@ switch(getAction()) {
 		if(mysql_num_rows($result) == 0) {
 			echo json_encode(array("error" => "result", "msg" => "No courses matched your criteria"));
 			break;
-		} 
+		}
 
 		// Now we build an array of the results
 		$courses = array();
@@ -164,7 +161,7 @@ switch(getAction()) {
 		// Loop through all results and fill them out
         $matchingCourses = array();
         foreach($courses as $sectionId) {
-            
+
             // Look up the course
             $course = getCourseBySectionId($sectionId);
 
